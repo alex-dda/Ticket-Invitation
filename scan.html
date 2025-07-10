@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scanner un billet - GTE PARTY</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background-color: #f4f4f4;
+    }
+    video {
+      width: 100%;
+      max-width: 400px;
+    }
+    #result {
+      font-size: 1.2em;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>📸 Scanner un billet GTE PARTY</h1>
+  <video id="preview"></video>
+  <p id="result">En attente d'un QR code...</p>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script>
+    const db = firebase.firestore();
+    const resultElement = document.getElementById('result');
+
+    function onScanSuccess(decodedText) {
+      if (!decodedText.startsWith("gte_")) {
+        resultElement.innerHTML = "⛔ Code invalide !";
+        return;
+      }
+
+      db.collection("billets").doc(decodedText).get().then(doc => {
+        if (!doc.exists) {
+          resultElement.innerHTML = "❌ Billet non trouvé.";
+        } else if (!doc.data().valide) {
+          resultElement.innerHTML = "⚠️ Billet déjà utilisé !";
+        } else {
+          resultElement.innerHTML = "✅ Accès autorisé à " + doc.data().prenom + " " + doc.data().nom;
+          db.collection("billets").doc(decodedText).update({valide: false});
+        }
+      });
+    }
+
+    const html5QrCode = new Html5Qrcode("preview");
+    Html5Qrcode.getCameras().then(devices => {
+      if (devices && devices.length) {
+        html5QrCode.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: 250 },
+          onScanSuccess
+        );
+      }
+    }).catch(err => {
+      resultElement.innerHTML = "Erreur d'accès à la caméra : " + err;
+    });
+  </script>
+</body>
+</html>

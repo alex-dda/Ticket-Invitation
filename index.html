@@ -1,0 +1,188 @@
+<!-- index.html - GTE PARTY: Générateur de billets avec explications -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GTE PARTY</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🎉 GTE PARTY 🎉</h1>
+    <p id="formIntro">Remplis ce formulaire pour générer ton billet :</p>
+
+    <!-- Formulaire de génération de billet -->
+    <form id="ticketForm">
+      <label for="anrede">Civilité :</label>
+      <select id="anrede" required>
+        <option value="">--Choisir--</option>
+        <option value="M.">M.</option>
+        <option value="Mme">Mme</option>
+      </select>
+
+      <label for="prenom">Prénom :</label>
+      <input type="text" id="prenom" required>
+
+      <label for="nom">Nom :</label>
+      <input type="text" id="nom" required>
+
+      <label for="email">Adresse email :</label>
+      <input type="email" id="email" required>
+
+      <label for="tel">Numéro de téléphone :</label>
+      <input type="tel" id="tel" required>
+
+      <button type="submit">Générer mon billet</button>
+    </form>
+
+    <!-- Zone d'affichage du billet une fois généré -->
+    <div id="ticket" class="hidden">
+      <h2>🎟️ Votre billet </h2>
+      <p><strong>Nom :</strong> <span id="displayName"></span></p>
+      <p><strong>Date :</strong> 3 octobre 2025</p>
+      <p><strong>Lieu :</strong> Duisburg</p>
+      <p><strong>Heure :</strong> 20h00</p>
+      <p><strong>Thème :</strong> Chic et Stylée</p>
+      <canvas id="qrCode"></canvas>
+      <button id="downloadBtn">📥 Télécharger le billet PDF</button>
+    </div>
+  </div>
+
+  <!-- Librairies nécessaires -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Configuration de Firebase -->
+  <script src="firebase-config.js"></script>
+
+  <!-- Script principal avec explications -->
+  <script>
+    // Variables globales
+    let lastPdfDoc = null;
+    let ticketId = "";
+    let fullName = "";
+    let tel = "";
+
+    // Connexion à la base Firestore
+    const db = firebase.firestore();
+
+    // Récupération des éléments HTML
+    const form = document.getElementById('ticketForm');
+    const ticket = document.getElementById('ticket');
+    const displayName = document.getElementById('displayName');
+    const qrCanvas = document.getElementById('qrCode');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    // Lors de la soumission du formulaire
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault(); // Empêche le rechargement de la page
+
+      // Lecture des champs du formulaire
+      const anrede = document.getElementById('anrede').value;
+      const prenom = document.getElementById('prenom').value.trim();
+      const nom = document.getElementById('nom').value.trim();
+      const email = document.getElementById('email').value.trim();
+      tel = document.getElementById('tel').value.trim();
+
+      // Construction du nom complet et d'un ID unique à partir de l'email
+      fullName = `${anrede} ${prenom} ${nom}`;
+      ticketId = "gte_" + email.replace(/[^a-zA-Z0-9]/g, "_");
+
+      // Vérification : un billet a-t-il déjà été généré avec ce mail ?
+      const snapshot = await db.collection("billets").where("email", "==", email).get();
+      if (!snapshot.empty) {
+        alert("⚠️ Un billet a déjà été généré avec cette adresse e-mail !");
+        return;
+      }
+
+      // Enregistrement du billet dans Firestore
+      await db.collection("billets").doc(ticketId).set({
+        anrede,
+        prenom,
+        nom,
+        email,
+        tel,
+        valide: true,
+        timestamp: new Date().toISOString()
+      });
+
+      // Affichage du billet à l'écran + QR code
+      displayName.textContent = fullName;
+      const qr = new QRious({ element: qrCanvas, value: ticketId, size: 200 });
+      ticket.classList.remove('hidden');
+      form.classList.add('hidden');
+      document.getElementById('formIntro').classList.add('hidden');
+
+      // === Génération du PDF ===
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: "pt", format: "a4" });
+
+      // Définition de la mise en page
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 40;
+      const contentWidth = pageWidth - margin * 2;
+
+      // Encadré décoratif
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(margin, margin, contentWidth, 400, 10, 10, "F");
+      doc.setDrawColor("#1e90ff");
+      doc.setLineWidth(2);
+      doc.roundedRect(margin, margin, contentWidth, 400, 10, 10, "S");
+
+      // Titre principal du billet
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(32);
+      doc.setTextColor("#6A0DAD");
+      doc.text(" GTE PARTY ", pageWidth / 2, margin + 60, { align: "center" });
+
+      // Informations du participant
+      doc.setFontSize(15);
+      doc.setFont("times", "bold");
+      doc.setTextColor("#191970");
+      const startY = margin + 140;
+      const lineHeight = 24;
+      doc.text(`Nom : ${fullName}`, margin + 20, startY);
+      doc.text(`Téléphone : ${tel}`, margin + 20, startY + lineHeight);
+      doc.text("Date : 3 octobre 2025", margin + 20, startY + 2 * lineHeight);
+      doc.text("Lieu : Duisburg", margin + 20, startY + 3 * lineHeight);
+      doc.text("Heure : 20h00", margin + 20, startY + 4 * lineHeight);
+      doc.text("Thème : Chic et Stylée", margin + 20, startY + 5 * lineHeight);
+      doc.text(`Code du billet : ${ticketId}`, margin + 20, startY + 6 * lineHeight);
+     
+
+      // Ajout du QR code dans le PDF
+      const qrImage = qrCanvas.toDataURL("image/png");
+      const qrSize = 130; // Taille du QR code
+      const borderSize = 140; // Taille du cadre, légèrement plus grand
+      const qrX = pageWidth - margin - 180; // Position X du QR code
+      const qrY = startY;
+
+      // Dessiner un cadre légèrement plus grand autour du QR code
+      doc.roundedRect(qrX - 5, qrY - 5, borderSize, borderSize, 10, 10, "S");
+      doc.addImage(qrImage, "PNG", qrX, qrY, qrSize, qrSize); // QR code images
+
+
+      // Pied de page
+      doc.setFontSize(12);
+      doc.setTextColor("#666666");
+      doc.text("Merci d'apporter ce billet à la soirée. Amuse-toi bien !", pageWidth / 2, margin + 420, { align: "center" });
+
+      // Enregistrement du PDF généré
+      lastPdfDoc = doc;
+      console.log("✅ PDF bien généré et prêt à être téléchargé");
+    });
+
+    // Téléchargement du billet PDF au clic sur le bouton
+    downloadBtn.addEventListener("click", () => {
+      if (lastPdfDoc) {
+        lastPdfDoc.save(`${ticketId}.pdf`);
+      } else {
+        alert("Aucun billet à télécharger. Génère d'abord ton billet.");
+      }
+    });
+  </script>
+</body>
+</html>
