@@ -1,55 +1,192 @@
+/* style.css - GTE PARTY */
+
 body {
   font-family: Arial, sans-serif;
-  background: linear-gradient(to right, #ffe4e1, #fffacd);
+  background: #fdf8eb; /* Teinte beige/jaune claire identique a la capture */
   color: #333;
-  padding: 20px;
-  text-align: center;
+  padding: 40px 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
 }
 
 .container {
-  max-width: 500px;
-  margin: auto;
-  background-color: white;
-  padding: 20px;
-  border-radius: 15px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-}
-
-input, select, button {
-  display: block;
   width: 100%;
-  margin: 10px 0;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  input,
-select,
-button {
-  width: 80%;       /* ou 300px selon ton goût */
-  max-width: 400px;
-  margin-bottom: 10px;
+  max-width: 500px;
+  background-color: white;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
 
+h1 {
+  text-align: center;
+  margin-top: 0;
+  font-size: 2.2em;
+  color: #333;
 }
 
-button {
-  background-color: #ff69b4;
-  color: white;
-  font-weight: bold;
-  border: none;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: #ff1493;
-}
-
-.hidden {
-  display: none;
+p#formIntro {
+  text-align: center;
+  color: #666;
+  margin-bottom: 30px;
 }
 
 form {
   display: flex;
   flex-direction: column;
+  width: 100%;
+}
+
+/* Alignement en ligne : Label a gauche, Champ a droite */
+.form-group {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  margin-bottom: 25px;
+}
+
+.form-group label {
+  font-weight: bold;
+  width: 35%;
+  text-align: right;
+  padding-right: 20px;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group select {
+  width: 65%;
+  padding: 10px;
+  border: 1px solid #ccd1d9;
+  border-radius: 8px;
+  background-color: #e9f0fe; /* Teinte bleutee automatique de la capture */
+  font-size: 15px;
+  box-sizing: border-box;
+}
+
+/* Desactiver le fond bleu pour le champ de prix en lecture seule */
+.form-group.price-group input {
+  background-color: #ffffff;
+  text-align: center;
+  font-weight: bold;
+  width: 30%; /* Plus etroit comme sur le modele */
+}
+
+.form-group.price-group {
+  justify-content: center;
+}
+
+.form-group.price-group label {
+  width: auto;
+  text-align: center;
+  padding-right: 10px;
+}
+
+/* Section Telephone et son alignement specifique */
+.tel-section {
+  margin-bottom: 25px;
+}
+
+.tel-section .main-label {
+  display: block;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.form-group-radio {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 15px;
+  font-weight: bold;
+}
+
+.form-group-radio .radio-label {
+  margin-right: 10px;
+}
+
+.form-group-radio input[type="radio"] {
+  margin-left: 15px;
+  margin-right: 5px;
+  cursor: pointer;
+}
+
+/* Bloc de saisie avec indicatif + champ */
+.form-group-tel-input {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.form-group-tel-input span {
+  font-weight: bold;
+  margin-right: 15px;
+  width: 40px;
+  text-align: right;
+}
+
+.form-group-tel-input input {
+  width: 50%;
+  padding: 10px;
+  border: 1px solid #ccd1d9;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+/* Bouton principal rose de soumission */
+button#submitBtn {
+  width: 100%;
+  padding: 14px;
+  background-color: #ff60b5; /* Rose vif identique a l'image */
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 15px;
+  transition: background 0.2s;
+}
+
+button#submitBtn:hover {
+  background-color: #f7459e;
+}
+
+/* Layout du Billet genere */
+#ticket {
+  margin-top: 30px;
+  padding: 20px;
+  border: 2px dashed #ff60b5;
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+}
+
+#ticket h2 {
+  text-align: center;
+  color: #333;
+}
+
+canvas#qrCode {
+  display: block;
+  margin: 20px auto;
+}
+
+button#downloadBtn {
+  width: 100%;
+  padding: 12px;
+  background-color: #4a90e2;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.hidden {
+  display: none !important;
 }
