@@ -1,6 +1,5 @@
-<!-- index.html - GTE PARTY: Générateur de billets avec explications -->
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="de">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,178 +8,278 @@
 </head>
 <body>
   <div class="container">
-    <h1>🎉 GTE PARTY 🎉</h1>
-    <p id="formIntro">Remplis ce formulaire pour générer ton billet :</p>
+    <h1>GTE PARTY</h1>
+    <p id="formIntro">Bitte füllen Sie dieses Formular aus, um Ihr Ticket zu kaufen:</p>
 
-    <!-- Formulaire de génération de billet -->
     <form id="ticketForm">
-      <label for="anrede">Civilité :</label>
-      <select id="anrede" required>
-        <option value="">--Choisir--</option>
-        <option value="M.">M.</option>
-        <option value="Mme">Mme</option>
-      </select>
+      
+      <div class="form-group">
+        <label for="anrede">Anrede:</label>
+        <select id="anrede" required>
+          <option value="">--Auswählen--</option>
+          <option value="Hr.">Hr.</option>
+          <option value="Fr.">Fr.</option>
+        </select>
+      </div>
 
-      <label for="prenom">Prénom :</label>
-      <input type="text" id="prenom" required>
+      <div class="form-group">
+        <label for="prenom">Vorname:</label>
+        <input type="text" id="prenom" required>
+      </div>
 
-      <label for="nom">Nom :</label>
-      <input type="text" id="nom" required>
+      <div class="form-group">
+        <label for="nom">Nachname:</label>
+        <input type="text" id="nom" required>
+      </div>
 
-      <label for="email">Adresse email :</label>
-      <input type="email" id="email" required>
+      <div class="form-group">
+        <label for="email">E-Mail:</label>
+        <input type="email" id="email" required>
+      </div>
 
-      <label for="tel">Numéro de téléphone :</label>
-      <input type="tel" id="tel" required>
+      <div class="tel-section">
+        <label class="main-label">Telefonnummer:</label>
+        
+        <div class="form-group-radio">
+          <span class="radio-label">Land:</span>
+          <input type="radio" id="paysDe" name="paysTel" value="DE">
+          <label for="paysDe">DE</label>
+          
+          <input type="radio" id="paysCmr" name="paysTel" value="Cmr">
+          <label for="paysCmr">Cmr</label>
+        </div>
 
-      <button type="submit">Générer mon billet</button>
+        <div class="form-group-tel-input">
+          <span id="indicatif"></span>
+          <input type="tel" id="tel" required>
+        </div>
+      </div>
+
+      <div class="form-group-radio">
+        <span class="radio-label">Status (GTE):</span>
+        <input type="radio" id="statutInterne" name="statut" value="interne">
+        <label for="statutInterne">Intern</label>
+        
+        <input type="radio" id="statutExterne" name="statut" value="externe">
+        <label for="statutExterne">Extern</label>
+      </div>
+
+      <div class="form-group price-group">
+        <label for="computedPrice">Ticketpreis:</label>
+        <input type="text" id="computedPrice" value="" readonly>
+      </div>
+
+      <div class="form-group">
+        <label for="paiement">Zahlungsart:</label>
+        <select id="paiement" required>
+          <option value="">--Auswählen--</option>
+          <option value="PayPal">PayPal</option>
+          <option value="Überweisung">Banküberweisung</option>
+        </select>
+      </div>
+
+      <button type="submit" id="submitBtn">Ticket erhalten</button>
     </form>
 
-    <!-- Zone d'affichage du billet une fois généré -->
     <div id="ticket" class="hidden">
-      <h2>🎟️ Votre billet </h2>
-      <p><strong>Nom :</strong> <span id="displayName"></span></p>
-      <p><strong>Date :</strong> 3 octobre 2025</p>
-      <p><strong>Lieu :</strong> Duisburg</p>
-      <p><strong>Heure :</strong> 20h00</p>
-      <p><strong>Thème :</strong> Chic et Stylée</p>
+      <h2>Ihr Ticket</h2>
+      <p><strong>Name:</strong> <span id="displayName"></span></p>
+      <p><strong>Status:</strong> <span id="displayStatut"></span></p>
+      <p><strong>Preis:</strong> <span id="displayPrice"></span></p>
+      <p><strong>Zahlung:</strong> <span id="displayPaiement"></span></p>
+      <p><strong>Datum:</strong> 3. Oktober 2026</p>
+      <p><strong>Ort:</strong> Duisburg</p>
+      <p><strong>Uhrzeit:</strong> 20:00 Uhr</p>
+      <p><strong>Motto:</strong> Chic und Stylée</p>
       <canvas id="qrCode"></canvas>
-      <button id="downloadBtn">📥 Télécharger le billet PDF</button>
+      <button id="downloadBtn">Ticket als PDF herunterladen</button>
     </div>
   </div>
 
-  <!-- Librairies nécessaires -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-  <!-- Configuration de Firebase -->
   <script src="firebase-config.js"></script>
 
-  <!-- Script principal avec explications -->
   <script>
-    // Variables globales
     let lastPdfDoc = null;
     let ticketId = "";
     let fullName = "";
-    let tel = "";
+    let formattedTel = "";
+    let currentPriceText = "";
 
-    // Connexion à la base Firestore
     const db = firebase.firestore();
 
-    // Récupération des éléments HTML
     const form = document.getElementById('ticketForm');
     const ticket = document.getElementById('ticket');
     const displayName = document.getElementById('displayName');
+    const displayStatut = document.getElementById('displayStatut');
+    const displayPrice = document.getElementById('displayPrice');
+    const displayPaiement = document.getElementById('displayPaiement');
     const qrCanvas = document.getElementById('qrCode');
     const downloadBtn = document.getElementById('downloadBtn');
 
-    // Lors de la soumission du formulaire
-    form.addEventListener('submit', async function(e) {
-      e.preventDefault(); // Empêche le rechargement de la page
+    const anredeSelect = document.getElementById('anrede');
+    const computedPriceInput = document.getElementById('computedPrice');
+    const indicatifSpan = document.getElementById('indicatif');
 
-      // Lecture des champs du formulaire
-      const anrede = document.getElementById('anrede').value;
-      const prenom = document.getElementById('prenom').value.trim();
-      const nom = document.getElementById('nom').value.trim();
-      const email = document.getElementById('email').value.trim();
-      tel = document.getElementById('tel').value.trim();
+    // Verwaltung der Telefonvorwahl (wird erst bei Klick aktiv)
+    document.querySelectorAll('input[name="paysTel"]').forEach(radio => {
+      radio.addEventListener('change', function() {
+        if (this.value === 'DE') {
+          indicatifSpan.textContent = '+49 ';
+        } else if (this.value === 'Cmr') {
+          indicatifSpan.textContent = '+237 ';
+        }
+      });
+    });
 
-      // Construction du nom complet et d'un ID unique à partir de l'email
-      fullName = `${anrede} ${prenom} ${nom}`;
-      ticketId = "gte_" + email.replace(/[^a-zA-Z0-9]/g, "_");
+    // Automatische Preisberechnung
+    function calculerPrix() {
+      const anrede = anredeSelect.value;
+      const statutRadio = document.querySelector('input[name="statut"]:checked');
 
-      // Vérification : un billet a-t-il déjà été généré avec ce mail ?
-      const snapshot = await db.collection("billets").where("email", "==", email).get();
-      if (!snapshot.empty) {
-        alert("⚠️ Un billet a déjà été généré avec cette adresse e-mail !");
+      if (!anrede || !statutRadio) {
+        currentPriceText = "";
+        computedPriceInput.value = "";
         return;
       }
 
-      // Enregistrement du billet dans Firestore
-      await db.collection("billets").doc(ticketId).set({
-        anrede,
-        prenom,
-        nom,
-        email,
-        tel,
-        valide: true,
-        timestamp: new Date().toISOString()
-      });
+      const statut = statutRadio.value;
 
-      // Affichage du billet à l'écran + QR code
-      displayName.textContent = fullName;
-      const qr = new QRious({ element: qrCanvas, value: ticketId, size: 200 });
-      ticket.classList.remove('hidden');
-      form.classList.add('hidden');
-      document.getElementById('formIntro').classList.add('hidden');
+      if (statut === 'externe') {
+        currentPriceText = "20 €";
+      } else {
+        currentPriceText = "15 €";
+      }
+      computedPriceInput.value = currentPriceText;
+    }
 
-      // === Génération du PDF ===
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ unit: "pt", format: "a4" });
-
-      // Définition de la mise en page
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const margin = 40;
-      const contentWidth = pageWidth - margin * 2;
-
-      // Encadré décoratif
-      doc.setFillColor(255, 255, 255);
-      doc.roundedRect(margin, margin, contentWidth, 400, 10, 10, "F");
-      doc.setDrawColor("#1e90ff");
-      doc.setLineWidth(2);
-      doc.roundedRect(margin, margin, contentWidth, 400, 10, 10, "S");
-
-      // Titre principal du billet
-      doc.setFont("helvetica", "italic");
-      doc.setFontSize(32);
-      doc.setTextColor("#6A0DAD");
-      doc.text(" GTE PARTY ", pageWidth / 2, margin + 60, { align: "center" });
-
-      // Informations du participant
-      doc.setFontSize(15);
-      doc.setFont("times", "bold");
-      doc.setTextColor("#191970");
-      const startY = margin + 140;
-      const lineHeight = 24;
-      doc.text(`Nom : ${fullName}`, margin + 20, startY);
-      doc.text(`Téléphone : ${tel}`, margin + 20, startY + lineHeight);
-      doc.text("Date : 3 octobre 2025", margin + 20, startY + 2 * lineHeight);
-      doc.text("Lieu : Duisburg", margin + 20, startY + 3 * lineHeight);
-      doc.text("Heure : 20h00", margin + 20, startY + 4 * lineHeight);
-      doc.text("Thème : Chic et Stylée", margin + 20, startY + 5 * lineHeight);
-      doc.text(`Code du billet : ${ticketId}`, margin + 20, startY + 6 * lineHeight);
-     
-
-      // Ajout du QR code dans le PDF
-      const qrImage = qrCanvas.toDataURL("image/png");
-      const qrSize = 130; // Taille du QR code
-      const borderSize = 140; // Taille du cadre, légèrement plus grand
-      const qrX = pageWidth - margin - 180; // Position X du QR code
-      const qrY = startY;
-
-      // Dessiner un cadre légèrement plus grand autour du QR code
-      doc.roundedRect(qrX - 5, qrY - 5, borderSize, borderSize, 10, 10, "S");
-      doc.addImage(qrImage, "PNG", qrX, qrY, qrSize, qrSize); // QR code images
-
-
-      // Pied de page
-      doc.setFontSize(12);
-      doc.setTextColor("#666666");
-      doc.text("Merci d'apporter ce billet à la soirée. Amuse-toi bien !", pageWidth / 2, margin + 420, { align: "center" });
-
-      // Enregistrement du PDF généré
-      lastPdfDoc = doc;
-      console.log("✅ PDF bien généré et prêt à être téléchargé");
+    anredeSelect.addEventListener('change', calculerPrix);
+    document.querySelectorAll('input[name="statut"]').forEach(radio => {
+      radio.addEventListener('change', calculerPrix);
     });
 
-    // Téléchargement du billet PDF au clic sur le bouton
+    // Formular absenden
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const anrede = anredeSelect.value;
+      const prenom = document.getElementById('prenom').value.trim();
+      const nom = document.getElementById('nom').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const rawTel = document.getElementById('tel').value.trim();
+      const paysRadio = document.querySelector('input[name="paysTel"]:checked');
+      const statutRadio = document.querySelector('input[name="statut"]:checked');
+      const paiement = document.getElementById('paiement').value;
+
+      // Zusätzliche Sicherheitsüberprüfungen vor dem Absenden
+      if (!paysRadio) {
+        alert("Bitte wählen Sie ein Land für die Telefonnummer aus!");
+        return;
+      }
+      if (!statutRadio || !currentPriceText) {
+        alert("Bitte wählen Sie zuerst Ihren Status aus!");
+        return;
+      }
+
+      const statut = statutRadio.value;
+      fullName = `${anrede} ${prenom} ${nom}`;
+      formattedTel = `${indicatifSpan.textContent}${rawTel}`;
+      ticketId = "gte_" + email.replace(/[^a-zA-Z0-9]/g, "_");
+
+      try {
+        const snapshot = await db.collection("billets").where("email", "==", email).get();
+        if (!snapshot.empty) {
+          alert("Für diese E-Mail-Adresse wurde bereits ein Ticket erstellt!");
+          return;
+        }
+
+        await db.collection("billets").doc(ticketId).set({
+          anrede,
+          prenom,
+          nom,
+          email,
+          tel: formattedTel,
+          statut,
+          paiement,
+          prix: currentPriceText,
+          valide: true,
+          timestamp: new Date().toISOString()
+        });
+
+        displayName.textContent = fullName;
+        displayStatut.textContent = statut === 'interne' ? 'Intern' : 'Extern';
+        displayPrice.textContent = currentPriceText;
+        displayPaiement.textContent = paiement === 'PayPal' ? 'PayPal' : 'Banküberweisung';
+
+        const qr = new QRious({ element: qrCanvas, value: ticketId, size: 200 });
+        ticket.classList.remove('hidden');
+        form.classList.add('hidden');
+        document.getElementById('formIntro').classList.add('hidden');
+
+        // === PDF ===
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ unit: "pt", format: "a4" });
+
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 40;
+        const contentWidth = pageWidth - margin * 2;
+
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(margin, margin, contentWidth, 400, 10, 10, "F");
+        doc.setDrawColor("#1e90ff");
+        doc.setLineWidth(2);
+        doc.roundedRect(margin, margin, contentWidth, 400, 10, 10, "S");
+
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(32);
+        doc.setTextColor("#6A0DAD");
+        doc.text(" GTE PARTY ", pageWidth / 2, margin + 60, { align: "center" });
+
+        doc.setFontSize(15);
+        doc.setFont("times", "bold");
+        doc.setTextColor("#191970");
+        const startY = margin + 140;
+        const lineHeight = 24;
+        doc.text(`Name: ${fullName}`, margin + 20, startY);
+        doc.text(`Telefon: ${formattedTel}`, margin + 20, startY + lineHeight);
+        doc.text(`Status: ${statut === 'interne' ? 'INTERN' : 'EXTERN'}`, margin + 20, startY + 2 * lineHeight);
+        doc.text(`Preis: ${currentPriceText}`, margin + 20, startY + 3 * lineHeight);
+        doc.text(`Zahlungsart: ${paiement === 'PayPal' ? 'PayPal' : 'Banküberweisung'}`, margin + 20, startY + 4 * lineHeight);
+        doc.text("Datum: 3. Oktober 2026", margin + 20, startY + 5 * lineHeight);
+        doc.text("Ort: Duisburg", margin + 20, startY + 6 * lineHeight);
+        doc.text(`Ticket-Code: ${ticketId}`, margin + 20, startY + 7 * lineHeight);
+
+        const qrImage = qrCanvas.toDataURL("image/png");
+        const qrSize = 130; 
+        const borderSize = 140; 
+        const qrX = pageWidth - margin - 180; 
+        const qrY = startY;
+
+        doc.roundedRect(qrX - 5, qrY - 5, borderSize, borderSize, 10, 10, "S");
+        doc.addImage(qrImage, "PNG", qrX, qrY, qrSize, qrSize); 
+
+        doc.setFontSize(12);
+        doc.setTextColor("#666666");
+        doc.text("Bitte bringen Sie dieses Ticket zur Party mit. Viel Spaß!", pageWidth / 2, margin + 420, { align: "center" });
+
+        lastPdfDoc = doc;
+        console.log("PDF erfolgreich generiert");
+
+      } catch (error) {
+        console.error("Firebase-Fehler: ", error);
+        alert("Bei der Verbindung zur Datenbank ist ein Fehler aufgetreten.");
+      }
+    });
+
     downloadBtn.addEventListener("click", () => {
       if (lastPdfDoc) {
         lastPdfDoc.save(`${ticketId}.pdf`);
       } else {
-        alert("Aucun billet à télécharger. Génère d'abord ton billet.");
+        alert("Kein Ticket zum Herunterladen verfügbar.");
       }
     });
   </script>
