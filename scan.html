@@ -14,15 +14,18 @@
     video {
       width: 100%;
       max-width: 400px;
+      border-radius: 8px;
+      background: #000;
     }
     #result {
       font-size: 1.2em;
       margin-top: 20px;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <h1>📸 Scanner un billet GTE PARTY</h1>
+  <h1>Scanner un billet GTE PARTY</h1>
   <video id="preview"></video>
   <p id="result">En attente d'un QR code...</p>
 
@@ -36,17 +39,21 @@
 
     function onScanSuccess(decodedText) {
       if (!decodedText.startsWith("gte_")) {
-        resultElement.innerHTML = "⛔ Code invalide !";
+        resultElement.innerHTML = "Code invalide !";
+        resultElement.style.color = "red";
         return;
       }
 
       db.collection("billets").doc(decodedText).get().then(doc => {
         if (!doc.exists) {
-          resultElement.innerHTML = "❌ Billet non trouvé.";
+          resultElement.innerHTML = "Billet non trouve.";
+          resultElement.style.color = "red";
         } else if (!doc.data().valide) {
-          resultElement.innerHTML = "⚠️ Billet déjà utilisé !";
+          resultElement.innerHTML = "Billet deja utilise !";
+          resultElement.style.color = "orange";
         } else {
-          resultElement.innerHTML = "✅ Accès autorisé à " + doc.data().prenom + " " + doc.data().nom;
+          resultElement.innerHTML = "Acces autorise a " + doc.data().prenom + " " + doc.data().nom;
+          resultElement.style.color = "green";
           db.collection("billets").doc(decodedText).update({valide: false});
         }
       });
@@ -62,7 +69,7 @@
         );
       }
     }).catch(err => {
-      resultElement.innerHTML = "Erreur d'accès à la caméra : " + err;
+      resultElement.innerHTML = "Erreur d'acces a la camera : " + err;
     });
   </script>
 </body>
